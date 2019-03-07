@@ -4,6 +4,8 @@
 # It will report memory usage every minute and prefer to kill browsers.
 sudo earlyoom -p -r 60 --prefer '(chrome|firefox)' --avoid 'python' &
 
+git branch --all
+
 sudo sh -c './wpt make-hosts-file >> /etc/hosts'
 
 if [[ $BROWSER == "chrome" ]] || [[ "$BROWSER" == all ]]
@@ -29,3 +31,5 @@ fi
 
 sudo Xvfb $DISPLAY -screen 0 ${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH} &
 sudo fluxbox -display $DISPLAY &
+
+export PATH='/home/test/.local/bin':$PATH

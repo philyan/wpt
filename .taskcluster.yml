@@ -98,6 +98,7 @@ tasks:
           $map: [{name: firefox, channel: nightly}, {name: chrome, channel: dev}]
           each(browser):
             $map:
+              # This is the main place to define new stability checks
               - name: wpt-${browser.name}-${browser.channel}-stability
                 checkout: FETCH_HEAD
                 diff_range: HEAD^
@@ -168,13 +169,56 @@ tasks:
                       --channel=${browser.channel}
                       ${operation.extra_args};
     - $map:
-       - name: lint
-         description: >-
-           Lint for wpt-specific requirements
-         script: tools/ci/ci_lint.sh
-         conditions:
-           push
-           pull-request
+        # This is the main point to define new CI checks other than stability checks
+      - name: lint
+        description: >-
+          Lint for wpt-specific requirements
+        script: tools/ci/ci_lint.sh
+        conditions:
+          push
+          pull-request
+      - name: update built tests
+        description: >-
+          Ensure test suites that require a build step are updated
+        script: ./tools/ci/run_tc.py update_built tools/ci/ci_built_diff.sh
+        conditions:
+          pull-request
+      - name: tools/ unittests (Python 2)
+        description: >-
+          Unit tests for tools running under Python 2.7, excluding wptrunner
+        script: >-
+          export TOXENV=py27;
+          export HYPOTHESIS_PROFILE=ci;
+          ./tools/ci/run_tc.py tools_unittest tools/ci/ci_tools_unittest.sh
+        conditions:
+          push
+          pull-request
+      - name: tools/wpt/ tests
+        description: >-
+          Integration tests for wpt commands
+        script: >-
+          export TOXENV=py27;
+          sudo apt install libnss3-tools;
+          ./tools/ci/run_tc.py wpt_integration tools/ci/ci_wpt.sh
+        conditions:
+          pull-request
+      - name: resources/ tests
+        description: >-
+          Tests for testharness.js and other files in resources/
+        script: >-
+          export TOXENV=py27;
+          ./tools/ci/run_tc.py resources_unittest tools/ci/ci_resources_unittest.sh
+        conditions:
+          pull-request
+      - name: infrastructure/ tests
+        description: >-
+          Smoketests for wptrunner
+        script: >-
+          sudo apt install libnss3-tools libappindicator1 fonts-liberation;
+          ./tools/ci/run_tc.py wptrunner_infrastructure tools/ci/ci_wptrunner_infrastructure.sh
+        conditions:
+          pull-request
+
       each(operation):
         # Note: jsone doesn't short-circuit evaluation so all parts of the conditional are evaluated
         # Accessing properties using the [] notation allows them to evaluate as null in case they're undefined
@@ -188,6 +232,7 @@ tasks:
                   ${event.ref}
                 else:
                   refs/pull/${event.number}/merge
+              event_str: {$json: {$eval: event}}
             in:
               taskId: {$eval: 'as_slugid(operation.name)'}
               taskGroupId: {$eval: 'as_slugid("task group")'}
@@ -223,6 +268,7 @@ tasks:
                   - --login
                   - -c
                   - set -ex;
+                    export TASK_EVENT='${event_str}';
                     ~/start.sh
                       ${event.repository.clone_url}
                       ${checkout_ref}

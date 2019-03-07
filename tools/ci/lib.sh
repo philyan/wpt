@@ -1,16 +1,3 @@
-hosts_fixup() {
-    echo "travis_fold:start:hosts_fixup"
-    echo "Rewriting hosts file"
-    echo "## /etc/hosts ##"
-    cat /etc/hosts
-    sudo sed -i 's/^::1\s*localhost/::1/' /etc/hosts
-    ./wpt make-hosts-file | sudo tee -a /etc/hosts
-    echo "== /etc/hosts =="
-    cat /etc/hosts
-    echo "----------------"
-    echo "travis_fold:end:hosts_fixup"
-}
-
 install_chrome() {
     channel=$1
     deb_archive=google-chrome-${channel}_current_amd64.deb

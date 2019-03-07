@@ -8,10 +8,8 @@ cd $WPT_ROOT
 source tools/ci/lib.sh
 
 main() {
-    hosts_fixup
-
     cd $WPT_ROOT
-    pip install -U tox
+    pip install --user -U tox
     ./wpt install firefox browser --destination $HOME
     ./wpt install firefox webdriver --destination $HOME/firefox
     export PATH=$HOME/firefox:$PATH
